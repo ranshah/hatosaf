@@ -1,146 +1,145 @@
+// Updated script.js using Unsplash Search API (With Sizing Fix + More Variety)
+
+const accessKey = 'NxQlt49bm1UlMFxtqWQZkMjKDz1UlDz-G53spWKCMAA'; // Replace with your actual Unsplash API access key
+
 var curGenre = 0;
 
 var genres = [
-  {id: "general", 
-   location: ["street", "nature", "cuba", "kitchen", "bath", "europe", "usa"],
-   char: ["man", "child", "woman"],
-   texts: ["sign", "text"] 
-  },
-  {id: "kids", 
-   location: ["street", "nature", "kindergarten", "playground", "playroom"],
-   char: ["man", "child", "woman", "mother", "father", "grandmother", "grandfather", "dog", "cat", "turtle", "elephant", "lion"],
-   texts: ["kid%20sign", "kid%20text"]
-  },
- {id: "mystery", 
-   location: ["night%20street", "night%20nature", "train%20station"],
-   char: ["detective&20man", "mysterious&woman"],
-   texts: ["gun%20sign", "rifle%20text"]
-  },
-  {id: "romance", 
-   location: ["sunset", "kiss", "breakup", "wedding%20ring"],
-   char: ["kiss", "breakup", "wedding%20ring", "sleep", "man", "woman"],
-   texts: ["love%20letter", "greeting%20card"]
-  },
-  {id: "scifi", 
-   location: ["spaceship", "planet", "space", "futuristic"],
-   char: ["robot",  "strange", "alien"],
-   texts: ["sign", "text"]
-  }  
-]
+  { id: "general", location: ["street", "nature", "cuba", "kitchen", "bath", "europe", "usa"], char: ["man", "child", "woman"], texts: ["sign", "text"] },
+  { id: "kids", location: ["street", "nature", "kindergarten", "playground", "playroom"], char: ["man", "child", "woman", "mother", "father", "grandmother", "grandfather", "dog", "cat", "turtle", "elephant", "lion"], texts: ["kid sign", "kid text"] },
+  { id: "mystery", location: ["night street", "night nature", "train station"], char: ["detective man", "mysterious woman"], texts: ["gun sign", "rifle text"] },
+  { id: "romance", location: ["sunset", "kiss", "breakup", "wedding ring"], char: ["kiss", "breakup", "wedding ring", "sleep", "man", "woman"], texts: ["love letter", "greeting card"] },
+  { id: "scifi", location: ["spaceship", "planet", "space", "futuristic"], char: ["robot", "strange", "alien"], texts: ["sign", "text"] }
+];
 
-var pics = [ 
-  {id: "location1", key: [], h: 2},
-  {id: "location2", key: [], h: 1},
-  {id: "char1", key: [], h: 1},
-  {id: "char2", key: [], h: 1},
-  {id: "texts", key: [], h: 1}   
-]
+var pics = [
+  { id: "location1", key: [], h: 2 },
+  { id: "location2", key: [], h: 1 },
+  { id: "char1", key: [], h: 1 },
+  { id: "char2", key: [], h: 1 },
+  { id: "texts", key: [], h: 1 }
+];
 
 function loadPics(genreItem) {
-  console.log(genreItem.Id);
-  pics[0].key = genreItem.location;
-  pics[1].key = genreItem.location;
-  pics[2].key = genreItem.char;
-  pics[3].key = genreItem.char;
-  pics[4].key = genreItem.texts;
+  pics[0].key = shuffleArray(genreItem.location);
+  pics[1].key = shuffleArray(genreItem.location);
+  pics[2].key = shuffleArray(genreItem.char);
+  pics[3].key = shuffleArray(genreItem.char);
+  pics[4].key = shuffleArray(genreItem.texts);
+}
+
+function shuffleArray(array) {
+  return [...array].sort(() => Math.random() - 0.5);
 }
 
 function toGenre(index) {
-  curGenre=index;
-
+  curGenre = index;
   nextOne();
 }
-function getImg (keyArr, resx, resy) {
-   key = keyArr[Math.floor(Math.random()*keyArr.length)];
-newImg = "https://source.unsplash.com/" + resx + "x" + resy + "/?sig=" + getSig() + "&" + key;
-  console.log(newImg);
-  return newImg;
-}
 
-function getSig() {
-  sig = Math.floor(Math.random()*1000);
-  console.log(sig);
-  return sig;
-} 
+function getImg(keyArr, index) {
+  return keyArr[index % keyArr.length];
+}
 
 function nextP(index) {
   nextPic(pics[index], index);
 }
 
-function nextPic(item, index){
-  resy = Math.floor(window.innerHeight/2-26)*item.h;
-  if (item.h == 2) {
-    resy += 5;
-  }
-  resx = Math.floor(window.innerWidth/3);
-  console.log(resx + "," + resy)
-  alt = getImg(item.key,resx,resy);
-  
-  fetch(alt).then( data => {
-	document.getElementById(item.id).src=data.url;    
-});
-  document.getElementById(item.id).alt=alt; 
-  
-  document.getElementById(item.id).onclick=function(){nextP(index)}; 
-  document.getElementById(item.id).ondblclick=function(){keyWindow(index)};
-  document.getElementById(item.id).style = "cursor:pointer";
-}
+function nextPic(item, index) {
+  const query = getImg(item.key, index + Math.floor(Math.random() * 10));
+  const resy = Math.floor(window.innerHeight / 2 * item.h);
+  const resx = Math.floor(window.innerWidth / 3);
+  const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=30&client_id=${accessKey}`;
 
+  fetch(url)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (!data.results || data.results.length === 0) {
+        console.warn("No images found for query:", query);
+        return;
+      }
+
+      const randomIndex = Math.floor(Math.random() * data.results.length);
+      const imageUrl = `${data.results[randomIndex].urls.raw}&fit=crop&w=${resx}&h=${resy}`;
+      const imgElement = document.getElementById(item.id);
+
+      imgElement.src = imageUrl;
+      imgElement.alt = query;
+      imgElement.onclick = () => nextP(index);
+      imgElement.ondblclick = () => keyWindow(index);
+      imgElement.style.cursor = "pointer";
+    })
+    .catch(error => console.error("Image load failed:", error));
+}
 
 function nextOne() {
-  document.getElementById("excol").style = "display:none";
+  document.getElementById("excol").style.display = "none";
   loadPics(genres[curGenre]);
-  pics.forEach(nextPic);
+  pics.forEach((_, index) => nextP(index));
 }
+
+// --- Restored success story logic ---
 
 var sucs = [ 
   {id: "Hemingway", 
-   urls: ["https://source.unsplash.com/geQTycLR1Vg", "https://source.unsplash.com/V-WK3awp5Mk", "https://source.unsplash.com/SNQ21J28wO8", "https://source.unsplash.com/2HxQw0_4xrs", "https://source.unsplash.com/pdx1LH_TMJM"],
- author:"https://c1.wallpaperflare.com/preview/780/69/193/ernest-hemingway-author-journalist-fiction.jpg",
-  book:"https://www.letstalknonprofit.blog/cms/img/LinkedIn-Dec2017-1.png"},
+   urls: ["geQTycLR1Vg", "V-WK3awp5Mk", "SNQ21J28wO8", "2HxQw0_4xrs", "pdx1LH_TMJM"],
+   author:"https://c1.wallpaperflare.com/preview/780/69/193/ernest-hemingway-author-journalist-fiction.jpg",
+   book:"https://www.letstalknonprofit.blog/cms/img/LinkedIn-Dec2017-1.png"
+  },
   {id: "Kafka", 
-   urls: ["https://source.unsplash.com/ffCgqkjBeo4", "https://source.unsplash.com/crZXpPqwVQ4", "https://source.unsplash.com/slbOcNlWNHA", "https://source.unsplash.com/Gk3Ot2WwLQM", "https://source.unsplash.com/mG28olYFgHI"],
-  author: "https://www.ynetnews.com/PicServer5/2019/03/14/9120291/23214060993168640360no.jpg",
-  book: "https://66.media.tumblr.com/tumblr_l6rsli89Tu1qad17po1_500.jpg"},
+   urls: ["ffCgqkjBeo4", "crZXpPqwVQ4", "slbOcNlWNHA", "Gk3Ot2WwLQM", "mG28olYFgHI"],
+   author: "https://www.ynetnews.com/PicServer5/2019/03/14/9120291/23214060993168640360no.jpg",
+   book: "https://66.media.tumblr.com/tumblr_l6rsli89Tu1qad17po1_500.jpg"
+  },
   {id: "God", 
-   urls: ["https://source.unsplash.com/X0ZVewKbl4g", "https://source.unsplash.com/gR_eBFetH38", "https://source.unsplash.com/v7oWAumWyiA", "https://source.unsplash.com/fDgdsLO1EU8", "https://source.unsplash.com/FH3nWjvia-U"],
-  author: "https://img-9gag-fun.9cache.com/photo/a3dVAKv_700bwp.webp",
-  book: "https://p.calameoassets.com/170728140144-60e51bf6e8f8e522731428c7d0551c1e/p1.jpg"}
-
-]
+   urls: ["X0ZVewKbl4g", "fDgdsLO1EU8", "gR_eBFetH38", "v7oWAumWyiA", "FH3nWjvia-U"],
+   author: "https://img-9gag-fun.9cache.com/photo/a3dVAKv_700bwp.webp",
+   book: "https://i.calameoassets.com/170728140144-60e51bf6e8f8e522731428c7d0551c1e/large.jpg"
+  }
+];
 
 ids = ["location1", "char1", "location2", "char2", "texts"];
 
 function sucStory(index) {
-   for (i=0; i<ids.length; i++){
-     id = ids[i];
-     resy = Math.floor(window.innerHeight/2+18);
-     if (i == 0) {
-       resy = resy*2 + 5;
-     }
-     resx = Math.floor(window.innerWidth/3);
-
-     url = sucs[index].urls[i] + "/" + resx + "x" + resy;
-     setStoryUrl(id, url);
-   }
-  // add author and book
-  id = "author";
-  url = sucs[index].author;
-  setStoryUrl(id, url);
-    
-  id = "book";
-  url = sucs[index].book;
-  setStoryUrl(id, url);
-   
-  // display it
-  document.getElementById("excol").style = "display:block";
-  
+  for (let i = 0; i < ids.length; i++) {
+    const id = ids[i];
+    const resy = (id === 'location1') ? Math.floor(window.innerHeight + 48) : Math.floor(window.innerHeight / 2 + 18);
+    const resx = Math.floor(window.innerWidth / 3);
+    const photoId = sucs[index].urls[i];
+    setStoryUrl(id, photoId, resx, resy);
+  }
+  document.getElementById("author").src = sucs[index].author;
+  document.getElementById("book").src = sucs[index].book;
+  document.getElementById("author").style.cursor = "auto";
+  document.getElementById("book").style.cursor = "auto";
+  document.getElementById("excol").style.display = "block";
 }
 
-function setStoryUrl(id, url) {
-  document.getElementById(id).alt = url;
-  document.getElementById(id).src = url;
-  document.getElementById(id).onclick = "javascript:void(0)";
-  document.getElementById(id).style = "cursor:auto";
-  
+function setStoryUrl(id, photoId, resx, resy) {
+  const apiUrl = `https://api.unsplash.com/photos/${photoId}?client_id=${accessKey}`;
+  const img = document.getElementById(id);
+
+  fetch(apiUrl)
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+      return response.json();
+    })
+    .then(data => {
+      img.src = `${data.urls.raw}&fit=crop&w=${resx}&h=${resy}`;
+      img.alt = data.alt_description || photoId;
+      img.onclick = null;
+      img.style.cursor = "auto";
+    })
+    .catch(error => {
+      console.warn("Failed to load via Unsplash API, photoId:", photoId);
+      img.src = "https://source.unsplash.com/" + photoId;
+      img.alt = photoId;
+      img.onclick = null;
+      img.style.cursor = "auto";
+    });
 }
